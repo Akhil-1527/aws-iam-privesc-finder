@@ -1,0 +1,26 @@
+# Secrets and credentials
+.env
+*.pem
+*.key
+.aws/
+
+# Python bytecode and caches
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Tool output
+reports/
+*.log
+
+# Build artifacts
+dist/
+build/
+*.egg-info/
+
+# OS
+.DS_Store
+
+# Virtual environments
+venv/
+.venv/
