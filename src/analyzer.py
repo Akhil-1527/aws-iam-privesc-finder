@@ -308,6 +308,215 @@ def check_update_login_profile(policy_set: PrincipalPolicySet) -> Optional[Findi
     )
 
 
+def check_attach_user_policy(policy_set: PrincipalPolicySet) -> Optional[Finding]:
+    """iam:AttachUserPolicy — attach AdministratorAccess to self/any user."""
+    required = ["iam:AttachUserPolicy"]
+    matched = _all_required_present(policy_set, required)
+    if matched is None:
+        return None
+    return Finding(
+        technique_name="iam:AttachUserPolicy",
+        description=(
+            "Principal can attach any managed policy (e.g. AdministratorAccess) "
+            "to any IAM user, immediately granting them those permissions."
+        ),
+        required_permissions=required,
+        matched_permissions=matched,
+        risk_level=RiskLevel.CRITICAL,
+        remediation=(
+            "Restrict iam:AttachUserPolicy with a Condition restricting "
+            "iam:PolicyARN to a small allowlist of approved managed policies. "
+            "Never grant on Resource '*' without such guardrails."
+        ),
+        mitre_attack_ref="T1098",
+    )
+
+
+def check_attach_role_policy(policy_set: PrincipalPolicySet) -> Optional[Finding]:
+    """iam:AttachRolePolicy — give an assumable role admin permissions."""
+    required = ["iam:AttachRolePolicy"]
+    matched = _all_required_present(policy_set, required)
+    if matched is None:
+        return None
+    return Finding(
+        technique_name="iam:AttachRolePolicy",
+        description=(
+            "Principal can attach AdministratorAccess (or any managed policy) "
+            "to a role they can already assume — escalating that role's "
+            "permissions to whatever the attached policy grants."
+        ),
+        required_permissions=required,
+        matched_permissions=matched,
+        risk_level=RiskLevel.CRITICAL,
+        remediation=(
+            "Constrain iam:AttachRolePolicy with iam:PolicyARN conditions and "
+            "a tight Resource list of role ARNs. Apply Permissions Boundaries "
+            "to restrict the maximum permissions roles can hold."
+        ),
+        mitre_attack_ref="T1098",
+    )
+
+
+def check_put_user_policy(policy_set: PrincipalPolicySet) -> Optional[Finding]:
+    """iam:PutUserPolicy — write a self-admin inline policy."""
+    required = ["iam:PutUserPolicy"]
+    matched = _all_required_present(policy_set, required)
+    if matched is None:
+        return None
+    return Finding(
+        technique_name="iam:PutUserPolicy",
+        description=(
+            "Principal can create or replace inline policies on any IAM user, "
+            "including themself. Writing an Allow:* / Resource:* inline policy "
+            "grants full account access."
+        ),
+        required_permissions=required,
+        matched_permissions=matched,
+        risk_level=RiskLevel.CRITICAL,
+        remediation=(
+            "Replace iam:PutUserPolicy with managed-policy attachment workflows. "
+            "If retained, scope Resource to ${aws:username} and apply a "
+            "Permissions Boundary that caps maximum effective permissions."
+        ),
+        mitre_attack_ref="T1098",
+    )
+
+
+def check_add_user_to_group(policy_set: PrincipalPolicySet) -> Optional[Finding]:
+    """iam:AddUserToGroup — add self to admin group."""
+    required = ["iam:AddUserToGroup"]
+    matched = _all_required_present(policy_set, required)
+    if matched is None:
+        return None
+    return Finding(
+        technique_name="iam:AddUserToGroup",
+        description=(
+            "Principal can add themself (or any user) to any IAM group. If a "
+            "group like 'Admins' exists, membership immediately grants its "
+            "policies."
+        ),
+        required_permissions=required,
+        matched_permissions=matched,
+        risk_level=RiskLevel.CRITICAL,
+        remediation=(
+            "Constrain iam:AddUserToGroup with a Resource list of allowed "
+            "groups (e.g. project-specific groups) excluding privileged ones. "
+            "Better: remove this permission and manage membership via your IdP."
+        ),
+        mitre_attack_ref="T1098",
+    )
+
+
+def check_assume_role_chain(policy_set: PrincipalPolicySet) -> Optional[Finding]:
+    """sts:AssumeRole chains — recursive assume-role to higher privileges."""
+    targets = assume_role_targets(policy_set)
+    if not targets:
+        return None
+    # Wildcard target = can assume any role => clearly a chain risk.
+    risky = [t for t in targets if t == "*" or t.endswith(":role/*")]
+    if not risky and not targets:
+        return None
+    risk = RiskLevel.HIGH if risky else RiskLevel.MEDIUM
+    description = (
+        "Principal can assume one or more IAM roles via sts:AssumeRole. If any "
+        "downstream role grants further AssumeRole permissions or is more "
+        "privileged than this principal, the chain enables escalation. "
+        "Recursive analysis to a depth of 3 is recommended."
+    )
+    return Finding(
+        technique_name="sts:AssumeRole chain",
+        description=description,
+        required_permissions=["sts:AssumeRole"],
+        matched_permissions=["sts:AssumeRole"],
+        risk_level=risk,
+        remediation=(
+            "Audit each downstream role's trust policy and inline permissions. "
+            "Avoid wildcard Resource on sts:AssumeRole. Use aws:SourceIdentity "
+            "and ExternalId conditions for cross-account roles, and apply "
+            "Permissions Boundaries on roles that can be widely assumed."
+        ),
+        mitre_attack_ref="T1548.005",
+        extra={"assumable_targets": targets},
+    )
+
+
+def check_update_assume_role_policy(policy_set: PrincipalPolicySet) -> Optional[Finding]:
+    """iam:UpdateAssumeRolePolicy — modify trust to allow self to assume."""
+    required = ["iam:UpdateAssumeRolePolicy"]
+    matched = _all_required_present(policy_set, required)
+    if matched is None:
+        return None
+    return Finding(
+        technique_name="iam:UpdateAssumeRolePolicy",
+        description=(
+            "Principal can rewrite the trust policy of any role, adding their "
+            "own ARN as a trusted principal. They can then assume that role "
+            "and inherit its permissions."
+        ),
+        required_permissions=required,
+        matched_permissions=matched,
+        risk_level=RiskLevel.CRITICAL,
+        remediation=(
+            "Restrict iam:UpdateAssumeRolePolicy to security-administration "
+            "principals only, and protect privileged roles via SCPs that "
+            "deny trust-policy modifications."
+        ),
+        mitre_attack_ref="T1098",
+    )
+
+
+def check_passrole_cloudformation(policy_set: PrincipalPolicySet) -> Optional[Finding]:
+    """cloudformation:CreateStack + iam:PassRole — deploy privileged stacks."""
+    required = ["iam:PassRole", "cloudformation:CreateStack"]
+    matched = _all_required_present(policy_set, required)
+    if matched is None:
+        return None
+    return Finding(
+        technique_name="cloudformation:CreateStack + iam:PassRole",
+        description=(
+            "Principal can submit a CloudFormation stack template using a "
+            "more privileged service role. The template can create arbitrary "
+            "resources (admin users, roles, EC2s) under that role's "
+            "permissions."
+        ),
+        required_permissions=required,
+        matched_permissions=matched,
+        risk_level=RiskLevel.HIGH,
+        remediation=(
+            "Restrict iam:PassRole resources to specific cloudformation "
+            "service roles, and constrain CloudFormation actions with stack "
+            "name patterns. Use iam:PassedToService=cloudformation.amazonaws.com "
+            "and a Permissions Boundary on the deploy role."
+        ),
+        mitre_attack_ref="T1078.004",
+    )
+
+
+def check_passrole_codebuild(policy_set: PrincipalPolicySet) -> Optional[Finding]:
+    """codebuild:CreateProject + iam:PassRole — execute build under privileged role."""
+    required = ["iam:PassRole", "codebuild:CreateProject"]
+    matched = _all_required_present(policy_set, required)
+    if matched is None:
+        return None
+    return Finding(
+        technique_name="codebuild:CreateProject + iam:PassRole",
+        description=(
+            "Principal can create a CodeBuild project that runs with a more "
+            "privileged service role. The buildspec can execute arbitrary "
+            "shell commands as that role and exfiltrate its credentials."
+        ),
+        required_permissions=required,
+        matched_permissions=matched,
+        risk_level=RiskLevel.HIGH,
+        remediation=(
+            "Limit iam:PassRole to a small allowlist of CodeBuild service roles. "
+            "Audit buildspec sources (must be a trusted repo) and require a "
+            "code-review gate on changes to buildspec.yml."
+        ),
+        mitre_attack_ref="T1059",
+    )
+
+
 # Ordered registry — used to drive the analyzer loop and the report.
 ALL_CHECKS: list[CheckFn] = [
     check_create_policy_version,
@@ -318,6 +527,14 @@ ALL_CHECKS: list[CheckFn] = [
     check_create_access_key,
     check_create_login_profile,
     check_update_login_profile,
+    check_attach_user_policy,
+    check_attach_role_policy,
+    check_put_user_policy,
+    check_add_user_to_group,
+    check_assume_role_chain,
+    check_update_assume_role_policy,
+    check_passrole_cloudformation,
+    check_passrole_codebuild,
 ]
 
 
