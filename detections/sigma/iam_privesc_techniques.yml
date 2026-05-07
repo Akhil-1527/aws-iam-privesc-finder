@@ -1,0 +1,283 @@
+# Sigma detection rules for IAM privilege escalation techniques.
+#
+# Coverage:
+#   - iam:CreatePolicyVersion abuse (defaulting a new permissive version)
+#   - iam:SetDefaultPolicyVersion roll-back
+#   - Suspicious iam:PassRole usage (attached to risky services)
+#   - iam:CreateAccessKey on a non-self user
+#   - iam:CreateLoginProfile / UpdateLoginProfile on a non-self user
+#   - iam:AttachUserPolicy / AttachRolePolicy attaching admin
+#   - iam:UpdateAssumeRolePolicy modifying trust
+#   - Unusual sts:AssumeRole chains (multiple assumes within a short window)
+#
+# Convert with pySigma: `sigma convert -t splunk -p cloudtrail <file>`
+# ---------------------------------------------------------------------------
+title: AWS IAM CreatePolicyVersion as default (privesc)
+id: 7c0b7a1c-2f7c-4d9d-9f25-7e2dd1a91cd0
+status: experimental
+description: >
+  Detects creation of a new managed-policy version with SetAsDefault=true.
+  When the actor has CreatePolicyVersion on a policy attached to a privileged
+  identity, this is the textbook escalation path.
+references:
+  - https://rhinosecuritylabs.com/aws/aws-privilege-escalation-methods-mitigation/
+author: aws-iam-privesc-finder
+date: 2026/05/06
+tags:
+  - attack.privilege_escalation
+  - attack.t1078.004
+logsource:
+  product: aws
+  service: cloudtrail
+detection:
+  selection:
+    eventSource: iam.amazonaws.com
+    eventName: CreatePolicyVersion
+    requestParameters.setAsDefault: true
+  filter_failed:
+    errorCode: '*'
+  condition: selection and not filter_failed
+falsepositives:
+  - Approved policy maintenance by IAM administrators (alert with allowlist)
+level: high
+---
+title: AWS IAM SetDefaultPolicyVersion (privesc)
+id: 5f3a8b06-50f0-4c4b-8e0e-83b0d2c1af2c
+status: experimental
+description: >
+  Detects rolling back a managed policy to a previous version. Attackers use
+  this to revive a permissive historical version and inherit its permissions.
+references:
+  - https://rhinosecuritylabs.com/aws/aws-privilege-escalation-methods-mitigation/
+author: aws-iam-privesc-finder
+date: 2026/05/06
+tags:
+  - attack.privilege_escalation
+  - attack.t1078.004
+logsource:
+  product: aws
+  service: cloudtrail
+detection:
+  selection:
+    eventSource: iam.amazonaws.com
+    eventName: SetDefaultPolicyVersion
+  filter_failed:
+    errorCode: '*'
+  condition: selection and not filter_failed
+falsepositives:
+  - Routine policy version rollbacks during change management
+level: high
+---
+title: AWS IAM PassRole to risky service (privesc)
+id: 8b1a5dba-9f6a-4f7a-bc4e-5f8a8e63dabe
+status: experimental
+description: >
+  Detects iam:PassRole or RunInstances/CreateFunction/CreateProject events
+  where a role is being passed to a service that commonly serves as a
+  privilege-escalation vector (EC2, Lambda, Glue, CodeBuild, CloudFormation).
+references:
+  - https://rhinosecuritylabs.com/aws/aws-privilege-escalation-methods-mitigation/
+author: aws-iam-privesc-finder
+date: 2026/05/06
+tags:
+  - attack.privilege_escalation
+  - attack.t1078.004
+logsource:
+  product: aws
+  service: cloudtrail
+detection:
+  passrole_event:
+    eventName:
+      - RunInstances
+      - CreateFunction
+      - CreateDevEndpoint
+      - CreateStack
+      - UpdateStack
+      - CreateProject
+      - UpdateProject
+      - StartBuild
+  has_iam_role:
+    requestParameters.iamInstanceProfile.name|exists: true
+  has_role_arn:
+    requestParameters.role|exists: true
+  has_service_role:
+    requestParameters.serviceRoleArn|exists: true
+  has_role_field:
+    requestParameters.roleArn|exists: true
+  filter_failed:
+    errorCode: '*'
+  condition: passrole_event and (has_iam_role or has_role_arn or has_service_role or has_role_field) and not filter_failed
+falsepositives:
+  - Legitimate CI/CD pipelines deploying with service roles (allowlist by source IP / role ARN)
+level: medium
+---
+title: AWS IAM CreateAccessKey for another user (privesc)
+id: 1b08a82a-8f5e-4d60-ae5e-0e3e2dc0f8aa
+status: experimental
+description: >
+  Detects iam:CreateAccessKey where the target UserName differs from the
+  caller's userName. Self-rotation is normal; cross-user creation is a
+  classic lateral-movement primitive.
+references:
+  - https://rhinosecuritylabs.com/aws/aws-privilege-escalation-methods-mitigation/
+author: aws-iam-privesc-finder
+date: 2026/05/06
+tags:
+  - attack.persistence
+  - attack.t1098.001
+logsource:
+  product: aws
+  service: cloudtrail
+detection:
+  selection:
+    eventSource: iam.amazonaws.com
+    eventName: CreateAccessKey
+  filter_failed:
+    errorCode: '*'
+  # SIEM-side correlation: alert if requestParameters.userName != userIdentity.userName
+  condition: selection and not filter_failed
+fields:
+  - userIdentity.userName
+  - userIdentity.arn
+  - requestParameters.userName
+  - sourceIPAddress
+falsepositives:
+  - Approved IAM admin scripts rotating keys for service users
+level: high
+---
+title: AWS IAM CreateLoginProfile or UpdateLoginProfile on another user (privesc)
+id: f3a4d92f-3a4d-4b3a-bda6-77b0c5f7fe11
+status: experimental
+description: >
+  Detects creation or update of a console password for an IAM user different
+  from the caller. Attackers use this to gain console access as a target
+  user (for CreateLoginProfile, the user must not already have a password).
+references:
+  - https://rhinosecuritylabs.com/aws/aws-privilege-escalation-methods-mitigation/
+author: aws-iam-privesc-finder
+date: 2026/05/06
+tags:
+  - attack.persistence
+  - attack.t1098.001
+logsource:
+  product: aws
+  service: cloudtrail
+detection:
+  selection:
+    eventSource: iam.amazonaws.com
+    eventName:
+      - CreateLoginProfile
+      - UpdateLoginProfile
+  filter_failed:
+    errorCode: '*'
+  condition: selection and not filter_failed
+fields:
+  - userIdentity.userName
+  - userIdentity.arn
+  - requestParameters.userName
+  - sourceIPAddress
+falsepositives:
+  - Helpdesk password reset flows (allowlist designated admin IAM users)
+level: high
+---
+title: AWS IAM AttachUserPolicy/AttachRolePolicy of admin (privesc)
+id: 8b9e2010-2f4f-4d70-b25f-1c9b0e9a7e51
+status: experimental
+description: >
+  Detects attachment of AdministratorAccess or other broad managed policies
+  to an IAM user or role. Attackers use this to escalate themselves or a
+  role they can assume.
+references:
+  - https://rhinosecuritylabs.com/aws/aws-privilege-escalation-methods-mitigation/
+author: aws-iam-privesc-finder
+date: 2026/05/06
+tags:
+  - attack.privilege_escalation
+  - attack.t1098
+logsource:
+  product: aws
+  service: cloudtrail
+detection:
+  selection:
+    eventSource: iam.amazonaws.com
+    eventName:
+      - AttachUserPolicy
+      - AttachRolePolicy
+      - AttachGroupPolicy
+    requestParameters.policyArn|contains:
+      - 'AdministratorAccess'
+      - 'IAMFullAccess'
+      - 'PowerUserAccess'
+  filter_failed:
+    errorCode: '*'
+  condition: selection and not filter_failed
+falsepositives:
+  - Approved IAM admin work; allowlist by userIdentity.arn
+level: critical
+---
+title: AWS IAM UpdateAssumeRolePolicy (trust modification, privesc)
+id: 2a90a7e0-7d4e-4d51-bd3d-1c1c1c1c1c1c
+status: experimental
+description: >
+  Detects modification of a role's trust policy. Attackers add their own ARN
+  as a trusted principal, then assume the role to inherit its permissions.
+references:
+  - https://rhinosecuritylabs.com/aws/aws-privilege-escalation-methods-mitigation/
+author: aws-iam-privesc-finder
+date: 2026/05/06
+tags:
+  - attack.privilege_escalation
+  - attack.t1098
+logsource:
+  product: aws
+  service: cloudtrail
+detection:
+  selection:
+    eventSource: iam.amazonaws.com
+    eventName: UpdateAssumeRolePolicy
+  filter_failed:
+    errorCode: '*'
+  condition: selection and not filter_failed
+fields:
+  - userIdentity.arn
+  - requestParameters.roleName
+  - requestParameters.policyDocument
+falsepositives:
+  - Approved trust-policy maintenance during role onboarding
+level: high
+---
+title: AWS STS AssumeRole chain (privesc)
+id: 9d8c8e9c-7e6f-4a4b-8dca-15a4c1a89c9e
+status: experimental
+description: >
+  Heuristic for AssumeRole chains: an STS AssumeRole event whose caller is
+  itself an assumed-role session (userIdentity.type=AssumedRole). Multiple
+  consecutive assumes can indicate lateral pivoting through privileged roles.
+references:
+  - https://rhinosecuritylabs.com/aws/aws-privilege-escalation-methods-mitigation/
+author: aws-iam-privesc-finder
+date: 2026/05/06
+tags:
+  - attack.privilege_escalation
+  - attack.t1548.005
+logsource:
+  product: aws
+  service: cloudtrail
+detection:
+  selection:
+    eventSource: sts.amazonaws.com
+    eventName:
+      - AssumeRole
+      - AssumeRoleWithSAML
+      - AssumeRoleWithWebIdentity
+    userIdentity.type: AssumedRole
+  filter_failed:
+    errorCode: '*'
+  condition: selection and not filter_failed
+fields:
+  - userIdentity.arn
+  - requestParameters.roleArn
+  - sourceIPAddress
+falsepositives:
+  - Engineers using cross-account jump roles
+level: medium
