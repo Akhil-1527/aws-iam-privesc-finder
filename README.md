@@ -13,11 +13,11 @@ review.
 ## Features
 
 - **16 privesc techniques** covered out of the box (see [Detected techniques](#detected-techniques))
-- **Static, read-only analysis** — works with `arn:aws:iam::aws:policy/ReadOnlyAccess` credentials
+- **Static, read-only analysis**: works with `arn:aws:iam::aws:policy/ReadOnlyAccess` credentials
 - **Markdown and JSON reports** with MITRE ATT&CK mapping and remediation guidance
 - **Rich-formatted CLI output** with color-coded risk levels
 - **Sigma rules** for runtime detection in CloudTrail
-- **CI-friendly exit codes** — exit `2` when findings exist, `0` when clean
+- **CI-friendly exit codes**: exit `2` when findings exist, `0` when clean
 
 ## Installation
 
@@ -127,15 +127,15 @@ sigma convert -t splunk -p cloudtrail detections/sigma/iam_privesc_techniques.ym
 
 Suggested CloudTrail alerts:
 
-- **`iam:CreatePolicyVersion` with `setAsDefault=true`** — investigate every occurrence
-- **`iam:CreateAccessKey` where `requestParameters.userName != userIdentity.userName`** — lateral movement signal
-- **`iam:UpdateLoginProfile` on another user** — account takeover pattern
-- **`iam:AttachUserPolicy` / `AttachRolePolicy` of `AdministratorAccess`** — escalation alert
+- **`iam:CreatePolicyVersion` with `setAsDefault=true`**: investigate every occurrence
+- **`iam:CreateAccessKey` where `requestParameters.userName != userIdentity.userName`**: lateral movement signal
+- **`iam:UpdateLoginProfile` on another user**: account takeover pattern
+- **`iam:AttachUserPolicy` / `AttachRolePolicy` of `AdministratorAccess`**: escalation alert
 - **AssumeRole chains** where `userIdentity.type=AssumedRole` calls AssumeRole again
 
 ## Required IAM permissions
 
-The tool only reads — it never modifies state. Recommended attached policy:
+The tool only reads. It never modifies state. Recommended attached policy:
 
 ```json
 {
@@ -184,10 +184,10 @@ cases plus enumerator/reporter unit tests.
 
 ## References
 
-- Spencer Gietzen, [AWS IAM Privilege Escalation – Methods and Mitigation](https://rhinosecuritylabs.com/aws/aws-privilege-escalation-methods-mitigation/) (Rhino Security Labs)
-- [Pacu](https://github.com/RhinoSecurityLabs/pacu) — AWS exploitation framework
-- [PMapper](https://github.com/nccgroup/PMapper) — Principal-mapping IAM analyzer
-- [MITRE ATT&CK – Cloud Matrix](https://attack.mitre.org/matrices/enterprise/cloud/aws/)
+- Spencer Gietzen, [AWS IAM Privilege Escalation: Methods and Mitigation](https://rhinosecuritylabs.com/aws/aws-privilege-escalation-methods-mitigation/) (Rhino Security Labs)
+- [Pacu](https://github.com/RhinoSecurityLabs/pacu): AWS exploitation framework
+- [PMapper](https://github.com/nccgroup/PMapper): Principal-mapping IAM analyzer
+- [MITRE ATT&CK Cloud Matrix](https://attack.mitre.org/matrices/enterprise/cloud/aws/)
 
 ## Disclaimer
 
@@ -198,4 +198,4 @@ accept no liability for misuse.
 
 ## License
 
-MIT — see [LICENSE](LICENSE).
+MIT. See [LICENSE](LICENSE).

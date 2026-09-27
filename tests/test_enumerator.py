@@ -1,6 +1,6 @@
 """Tests for IAM enumeration helpers.
 
-Live AWS calls are stubbed — we validate the enumeration logic and the
+Live AWS calls are stubbed. We validate the enumeration logic and the
 PrincipalPolicySet helpers against synthetic input.
 """
 from __future__ import annotations

@@ -52,7 +52,7 @@ class PrincipalPolicySet:
     def all_allowed_actions(self) -> set[str]:
         """Union of every Allow-action across every attached statement.
 
-        Wildcards (e.g. ``iam:*``) are kept as-is — match resolution happens
+        Wildcards (e.g. ``iam:*``) are kept as-is. Match resolution happens
         in :func:`utils.action_matches`.
         """
         actions: set[str] = set()
@@ -270,7 +270,7 @@ class IAMEnumerator:
         )
 
     # ------------------------------------------------------------------
-    # Pagination helpers — boto3 paginators with safe_call wrapping.
+    # Pagination helpers: boto3 paginators with safe_call wrapping.
     # ------------------------------------------------------------------
 
     def _paginate(self, client_method_name: str, key: str, **kwargs) -> list[dict]:
@@ -280,7 +280,7 @@ class IAMEnumerator:
         try:
             for page in paginator.paginate(**kwargs):
                 results.extend(page.get(key, []))
-        except Exception as exc:  # noqa: BLE001 — swallow with logging for read-only friendliness
+        except Exception as exc:  # noqa: BLE001 (swallow with logging for read-only friendliness)
             from botocore.exceptions import ClientError
 
             if isinstance(exc, ClientError):

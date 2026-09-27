@@ -118,7 +118,7 @@ def run(args: argparse.Namespace, console: Console | None = None) -> int:
             policy_set = enumerator.enumerate_user(args.user)
         else:
             policy_set = enumerator.enumerate_role(args.role_arn)
-    except Exception as exc:  # noqa: BLE001 — surface AWS errors cleanly
+    except Exception as exc:  # noqa: BLE001 (surface AWS errors cleanly)
         logger.error("Enumeration failed: %s", exc)
         return 1
 

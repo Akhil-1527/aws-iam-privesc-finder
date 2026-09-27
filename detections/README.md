@@ -13,7 +13,7 @@ Use both: harden against the static finding, alert on the runtime signal.
 
 ## Files
 
-- [`sigma/iam_privesc_techniques.yml`](sigma/iam_privesc_techniques.yml) — multi-rule file covering the highest-signal techniques.
+- [`sigma/iam_privesc_techniques.yml`](sigma/iam_privesc_techniques.yml): multi-rule file covering the highest-signal techniques.
 
 ## Conversion
 

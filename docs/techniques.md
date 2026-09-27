@@ -42,7 +42,7 @@ allowed at the time of authoring.
 **Required permissions:** `iam:SetDefaultPolicyVersion`
 
 **Detection.** `SetDefaultPolicyVersion` events in CloudTrail (the rule fires
-on every successful call — combine with allowlists for change-management).
+on every successful call, so combine with allowlists for change-management).
 
 **Remediation.** Audit and prune non-default versions of customer-managed
 policies. Restrict `SetDefaultPolicyVersion` to break-glass admin only.
@@ -112,8 +112,8 @@ list aggressively.
 
 **Risk:** CRITICAL · **MITRE ATT&CK:** T1098.001
 
-**Workflow.** Create a programmatic access key for *another* user — most
-commonly an admin — and authenticate as that user.
+**Workflow.** Create a programmatic access key for *another* user (most
+commonly an admin) and authenticate as that user.
 
 **Required permissions:** `iam:CreateAccessKey`
 
@@ -130,7 +130,7 @@ suspicious.
 **Risk:** CRITICAL · **MITRE ATT&CK:** T1098.001
 
 **Workflow.** Many programmatic IAM users have no console password. Calling
-`CreateLoginProfile` for them assigns one — the attacker then logs into the
+`CreateLoginProfile` for them assigns one, and the attacker then logs into the
 console as that user.
 
 **Required permissions:** `iam:CreateLoginProfile`
@@ -164,7 +164,7 @@ the caller.
 **Risk:** CRITICAL · **MITRE ATT&CK:** T1098
 
 **Workflow.** Attach `AdministratorAccess` (or any broad managed policy) to
-a user — including yourself.
+a user, including yourself.
 
 **Required permissions:** `iam:AttachUserPolicy`
 
@@ -230,7 +230,7 @@ and the target group is privileged.
 **Risk:** HIGH (wildcard target) / MEDIUM (specific) · **MITRE ATT&CK:** T1548.005
 
 **Workflow.** A principal that can assume one or more roles can chain
-through them — each assumed role may have its own AssumeRole permissions
+through them, since each assumed role may have its own AssumeRole permissions
 on yet more privileged roles. The static analyzer recommends recursive
 analysis up to 3 hops.
 

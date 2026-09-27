@@ -101,7 +101,7 @@ def _all_required_present(
 
 
 def check_create_policy_version(policy_set: PrincipalPolicySet) -> Optional[Finding]:
-    """iam:CreatePolicyVersion — set a permissive default version on any managed policy."""
+    """iam:CreatePolicyVersion: set a permissive default version on any managed policy."""
     required = ["iam:CreatePolicyVersion"]
     matched = _all_required_present(policy_set, required)
     if matched is None:
@@ -127,7 +127,7 @@ def check_create_policy_version(policy_set: PrincipalPolicySet) -> Optional[Find
 
 
 def check_set_default_policy_version(policy_set: PrincipalPolicySet) -> Optional[Finding]:
-    """iam:SetDefaultPolicyVersion — roll back to a stored permissive version."""
+    """iam:SetDefaultPolicyVersion: roll back to a stored permissive version."""
     required = ["iam:SetDefaultPolicyVersion"]
     matched = _all_required_present(policy_set, required)
     if matched is None:
@@ -153,7 +153,7 @@ def check_set_default_policy_version(policy_set: PrincipalPolicySet) -> Optional
 
 
 def check_passrole_ec2(policy_set: PrincipalPolicySet) -> Optional[Finding]:
-    """iam:PassRole + ec2:RunInstances — boot an instance under a privileged role."""
+    """iam:PassRole + ec2:RunInstances: boot an instance under a privileged role."""
     required = ["iam:PassRole", "ec2:RunInstances"]
     matched = _all_required_present(policy_set, required)
     if matched is None:
@@ -206,7 +206,7 @@ def check_passrole_lambda(policy_set: PrincipalPolicySet) -> Optional[Finding]:
 
 
 def check_passrole_glue(policy_set: PrincipalPolicySet) -> Optional[Finding]:
-    """iam:PassRole + glue:CreateDevEndpoint — SSH into a notebook with privileged role."""
+    """iam:PassRole + glue:CreateDevEndpoint: SSH into a notebook with privileged role."""
     required = ["iam:PassRole", "glue:CreateDevEndpoint"]
     matched = _all_required_present(policy_set, required)
     if matched is None:
@@ -232,7 +232,7 @@ def check_passrole_glue(policy_set: PrincipalPolicySet) -> Optional[Finding]:
 
 
 def check_create_access_key(policy_set: PrincipalPolicySet) -> Optional[Finding]:
-    """iam:CreateAccessKey — issue keys for any user (lateral movement)."""
+    """iam:CreateAccessKey: issue keys for any user (lateral movement)."""
     required = ["iam:CreateAccessKey"]
     matched = _all_required_present(policy_set, required)
     if matched is None:
@@ -259,7 +259,7 @@ def check_create_access_key(policy_set: PrincipalPolicySet) -> Optional[Finding]
 
 
 def check_create_login_profile(policy_set: PrincipalPolicySet) -> Optional[Finding]:
-    """iam:CreateLoginProfile — issue console password to passwordless user."""
+    """iam:CreateLoginProfile: issue console password to passwordless user."""
     required = ["iam:CreateLoginProfile"]
     matched = _all_required_present(policy_set, required)
     if matched is None:
@@ -284,7 +284,7 @@ def check_create_login_profile(policy_set: PrincipalPolicySet) -> Optional[Findi
 
 
 def check_update_login_profile(policy_set: PrincipalPolicySet) -> Optional[Finding]:
-    """iam:UpdateLoginProfile — change another user's password."""
+    """iam:UpdateLoginProfile: change another user's password."""
     required = ["iam:UpdateLoginProfile"]
     matched = _all_required_present(policy_set, required)
     if matched is None:
@@ -309,7 +309,7 @@ def check_update_login_profile(policy_set: PrincipalPolicySet) -> Optional[Findi
 
 
 def check_attach_user_policy(policy_set: PrincipalPolicySet) -> Optional[Finding]:
-    """iam:AttachUserPolicy — attach AdministratorAccess to self/any user."""
+    """iam:AttachUserPolicy: attach AdministratorAccess to self/any user."""
     required = ["iam:AttachUserPolicy"]
     matched = _all_required_present(policy_set, required)
     if matched is None:
@@ -333,7 +333,7 @@ def check_attach_user_policy(policy_set: PrincipalPolicySet) -> Optional[Finding
 
 
 def check_attach_role_policy(policy_set: PrincipalPolicySet) -> Optional[Finding]:
-    """iam:AttachRolePolicy — give an assumable role admin permissions."""
+    """iam:AttachRolePolicy: give an assumable role admin permissions."""
     required = ["iam:AttachRolePolicy"]
     matched = _all_required_present(policy_set, required)
     if matched is None:
@@ -342,7 +342,7 @@ def check_attach_role_policy(policy_set: PrincipalPolicySet) -> Optional[Finding
         technique_name="iam:AttachRolePolicy",
         description=(
             "Principal can attach AdministratorAccess (or any managed policy) "
-            "to a role they can already assume — escalating that role's "
+            "to a role they can already assume, escalating that role's "
             "permissions to whatever the attached policy grants."
         ),
         required_permissions=required,
@@ -358,7 +358,7 @@ def check_attach_role_policy(policy_set: PrincipalPolicySet) -> Optional[Finding
 
 
 def check_put_user_policy(policy_set: PrincipalPolicySet) -> Optional[Finding]:
-    """iam:PutUserPolicy — write a self-admin inline policy."""
+    """iam:PutUserPolicy: write a self-admin inline policy."""
     required = ["iam:PutUserPolicy"]
     matched = _all_required_present(policy_set, required)
     if matched is None:
@@ -383,7 +383,7 @@ def check_put_user_policy(policy_set: PrincipalPolicySet) -> Optional[Finding]:
 
 
 def check_add_user_to_group(policy_set: PrincipalPolicySet) -> Optional[Finding]:
-    """iam:AddUserToGroup — add self to admin group."""
+    """iam:AddUserToGroup: add self to admin group."""
     required = ["iam:AddUserToGroup"]
     matched = _all_required_present(policy_set, required)
     if matched is None:
@@ -408,7 +408,7 @@ def check_add_user_to_group(policy_set: PrincipalPolicySet) -> Optional[Finding]
 
 
 def check_assume_role_chain(policy_set: PrincipalPolicySet) -> Optional[Finding]:
-    """sts:AssumeRole chains — recursive assume-role to higher privileges."""
+    """sts:AssumeRole chains: recursive assume-role to higher privileges."""
     targets = assume_role_targets(policy_set)
     if not targets:
         return None
@@ -441,7 +441,7 @@ def check_assume_role_chain(policy_set: PrincipalPolicySet) -> Optional[Finding]
 
 
 def check_update_assume_role_policy(policy_set: PrincipalPolicySet) -> Optional[Finding]:
-    """iam:UpdateAssumeRolePolicy — modify trust to allow self to assume."""
+    """iam:UpdateAssumeRolePolicy: modify trust to allow self to assume."""
     required = ["iam:UpdateAssumeRolePolicy"]
     matched = _all_required_present(policy_set, required)
     if matched is None:
@@ -466,7 +466,7 @@ def check_update_assume_role_policy(policy_set: PrincipalPolicySet) -> Optional[
 
 
 def check_passrole_cloudformation(policy_set: PrincipalPolicySet) -> Optional[Finding]:
-    """cloudformation:CreateStack + iam:PassRole — deploy privileged stacks."""
+    """cloudformation:CreateStack + iam:PassRole: deploy privileged stacks."""
     required = ["iam:PassRole", "cloudformation:CreateStack"]
     matched = _all_required_present(policy_set, required)
     if matched is None:
@@ -493,7 +493,7 @@ def check_passrole_cloudformation(policy_set: PrincipalPolicySet) -> Optional[Fi
 
 
 def check_passrole_codebuild(policy_set: PrincipalPolicySet) -> Optional[Finding]:
-    """codebuild:CreateProject + iam:PassRole — execute build under privileged role."""
+    """codebuild:CreateProject + iam:PassRole: execute build under privileged role."""
     required = ["iam:PassRole", "codebuild:CreateProject"]
     matched = _all_required_present(policy_set, required)
     if matched is None:
@@ -517,7 +517,7 @@ def check_passrole_codebuild(policy_set: PrincipalPolicySet) -> Optional[Finding
     )
 
 
-# Ordered registry — used to drive the analyzer loop and the report.
+# Ordered registry, used to drive the analyzer loop and the report.
 ALL_CHECKS: list[CheckFn] = [
     check_create_policy_version,
     check_set_default_policy_version,
@@ -550,7 +550,7 @@ def analyze(policy_set: PrincipalPolicySet) -> list[Finding]:
     for check in ALL_CHECKS:
         try:
             finding = check(policy_set)
-        except Exception as exc:  # noqa: BLE001 — guard against malformed docs
+        except Exception as exc:  # noqa: BLE001 (guard against malformed docs)
             logger.warning("Check %s raised %s", check.__name__, exc)
             continue
         if finding is not None:

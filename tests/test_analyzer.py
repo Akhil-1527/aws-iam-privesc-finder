@@ -42,7 +42,7 @@ def test_safe_readonly_yields_no_findings(mock_policy, make_policy_set):
 
 
 # -------------------------------------------------------------------- #
-# Positive cases — one parametrized test per technique                 #
+# Positive cases: one parametrized test per technique                  #
 # -------------------------------------------------------------------- #
 
 

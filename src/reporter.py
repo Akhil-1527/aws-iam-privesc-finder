@@ -39,8 +39,8 @@ treating this as a clean bill of health.
 {%- else -%}
 **{{ critical_count }} critical**, **{{ high_count }} high**, and
 **{{ medium_count }} medium** escalation path(s) were identified. The
-highest-risk finding is **{{ top_finding }}**. Address critical findings first
-— each one represents a path to full account control.
+highest-risk finding is **{{ top_finding }}**. Address critical findings first.
+Each one represents a path to full account control.
 {%- endif %}
 
 ## Findings Overview
@@ -54,7 +54,7 @@ highest-risk finding is **{{ top_finding }}**. Address critical findings first
 ## Detailed Findings
 
 {% for f in findings %}
-### {{ loop.index }}. {{ f.technique_name }} — {{ f.risk_level }}
+### {{ loop.index }}. {{ f.technique_name }} ({{ f.risk_level }})
 
 **MITRE ATT&CK:** `{{ f.mitre_attack_ref }}`
 
